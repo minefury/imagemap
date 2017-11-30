@@ -1,2 +1,11 @@
 # imagemap
-Minetest mod that creates a map from a png image (school project)
+
+Мод для [minetest](https://www.minetest.net/), который создает карту по картинке
+в формате png. Это мой школьный проект.
+Он добавляет команду `map`, после которой нужно написать имя
+файла с картинкой. Например,
+```
+/map mymap.png
+```
+Файл должен находиться в каталоге мода, например, `~/.minetest/mods/imagemap/map.png`.
+
