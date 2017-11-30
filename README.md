@@ -9,3 +9,4 @@
 ```
 Файл должен находиться в каталоге мода, например, `~/.minetest/mods/imagemap/map.png`.
 
+Посмотреть как он работает можно на [youtube](https://youtu.be/y1plFH-CLKs). 
