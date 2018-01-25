@@ -15,14 +15,13 @@ dofile(imagemap.modpath.."/mapgen.lua")
 -- Set mapgen parameters
 minetest.register_on_mapgen_init(function(mgparams)
     minetest.set_mapgen_setting("mgname", "singlenode")
-    minetest.set_mapgen_setting("flags", "nolight")
-    minetest.set_mapgen_params({mgname="singlenode", flags="nolight"})
+    minetest.set_mapgen_params({mgname="singlenode"})
 end)
 
 -- On generated function
 minetest.register_on_generated(function(minp, maxp, seed)
-    -- provide a stone "floor" so that player doesn't fall indefinitely
-    imagemap.generate_floor(minp, maxp)
+    -- actually generate landscape
+    imagemap.generate_landscape(minp, maxp)
 end)
 
 local load_map_cmd = {

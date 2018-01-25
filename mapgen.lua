@@ -2,40 +2,8 @@
 --
 -- This is free and unencumbered software released into the public domain.
 
-function imagemap.generate_floor(minp, maxp)
-    -- this will provide a stone floor at the level zero and below
-    local vm, emin, emax = minetest.get_mapgen_object("voxelmanip")
-    local area = VoxelArea:new{MinEdge=emin, MaxEdge=emax}
-    local data = vm:get_data()
+map_data = {} -- a buffer for VoxelManip
 
-    local x0 = minp.x
-    local y0 = minp.y
-    local z0 = minp.z
-
-    local x1 = maxp.x
-    local y1 = maxp.y
-    local z1 = maxp.z
-
-    -- only interested in voxels that contain a plane with y == 0
-    if y0 > 0 or y1 < 0 then
-	return
-    end
-
-    for x=x0,x1 do
-	for z=z0,z1 do
-	    for y=-10,0 do
-		local vi = area:index(x, y, z) -- voxelmanip index
-		data[vi] = minetest.get_content_id("default:stone")
-	    end
-	end
-    end
-
-    vm:set_data(data)
-    minetest.generate_ores(vm, minp, maxp)
-    vm:calc_lighting()
-    vm:write_to_map(data)
-    vm:update_liquids()
-end
 
 local blocks = {
 	dirt = { name = "default:dirt" },
@@ -53,19 +21,6 @@ local function get_lum(px)
 end
 
 ----------------- By Maja ---------------------------------
-local function clean()
-    math.randomseed(os.time())
-
-    for x = 0, 100 do
-        for z = 0, 100 do
-            for y = 0, 30 do
-                local pos = {x=x, y=y, z=z}
-                minetest.remove_node(pos)
-            end
-        end
-    end
-end
-
 local function is_grass(px)
     return px.G >= 200 and px.R < px.G and px.B < px.G
 end
@@ -115,45 +70,75 @@ local function near_water(img, z, x)
     return false         
 end
 
-local function generate_blocks(img)
-    clean()
-    
-    for x = 1, img.height do
-        for z = 1, img.width do
-            p = img:getPixel(z, x)
-	    h = get_height(p)
-
-	    for y = 1, h do
-	        pos = {x = x, y = y, z = z}
-                minetest.set_node(pos, blocks.dirt)   
-	    end
-	    
-            if is_water(p) then
-                b = blocks.water
-            elseif is_grass(p) then
-                b = blocks.grass
-            else
-                b = blocks.stone
-            end
-            
-            if not is_water(p) and near_water(img, z, x) then
-                b = blocks.sand
-            end
-            
-            pos = {x = x, y = h+1, z = z}
-            minetest.set_node(pos, b)
-        end
+local function is_inside_image(z, x)
+    if imagemap.img then
+	return true -- TODO
     end
+
+    return false
 end
+
+local function pixel_to_block(x, y, z)
+    p = imagemap.img:getPixel(z, x)
+    h = get_height(p)
+    -- TODO
+    b = blocks.air.name
+    return b
+end
+
+local function generate_blocks_for_area(area, emin, emax)
+    local x0 = emin.x
+    local y0 = emin.y
+    local z0 = emin.z
+
+    local x1 = emax.x
+    local y1 = emax.y
+    local z1 = emax.z
+
+    print("------------------------------------")
+    print("generate blocks for min ", x0, y0, z0)
+    print("generate blocks for max ", x1, y1, z1)
+
+    local vi = area:index(x0, y0, z0) -- voxelmanip index
+    map_data[vi] = minetest.get_content_id(blocks.air.name)
+end
+
 -----------------------------------------------------------
 
+function imagemap.generate_landscape(area, minp, maxp)
+    local vm, emin, emax = minetest.get_mapgen_object("voxelmanip")
+    local area = VoxelArea:new{MinEdge=emin, MaxEdge=emax}
+
+    vm:get_data(map_data)
+
+    generate_blocks_for_area(area, emin, emax)
+
+    vm:set_data(map_data)
+    minetest.generate_ores(vm, emin, emax)
+    vm:update_liquids()
+    vm:write_to_map(true)
+end
+
+
+imagemap.img = nil
+
+local function cleanup()
+    math.randomseed(os.time())
+
+    local pmin = {x = 0, y = 0, z = 0}
+    local pmax = {x = imagemap.img.height, y = 1, z = imagemap.img.width}
+
+    minetest.delete_area(pmin, pmax)
+    minetest.emerge_area(pmin, pmax)
+end
+
 local function create_map_from_image(mapname)
-    local img = pngImage(mapname)
-    if img == nil then
+    imagemap.img = pngImage(mapname)
+    if imagemap.img == nil then
 	return
     end
 
-    generate_blocks(img)
+    cleanup()
 
     return true
 end
