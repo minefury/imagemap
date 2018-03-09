@@ -12,8 +12,8 @@ local blocks = {
 	water = { name = "default:water_source" },
 	air = { name = "default:air" },
 	snow = { name = "default:snowblock" },
-	grass = { name = "default:dirt_with_grass"},
-	dirt_with_dry_grass = { name = "default:dirt_with_dry_grass"},
+	grass = { name = "default:dirt_with_grass" },
+	dirt_with_dry_grass = { name = "default:dirt_with_dry_grass" },
     }
     
 local function get_lum(px)
@@ -72,7 +72,7 @@ end
 
 local function is_inside_image(z, x)
     if imagemap.img then
-	return true -- TODO
+	return ( x >= 1 and x <= imagemap.img.height and z >= 1 and z <= imagemap.img.width )
     end
 
     return false
@@ -81,8 +81,24 @@ end
 local function pixel_to_block(x, y, z)
     p = imagemap.img:getPixel(z, x)
     h = get_height(p)
-    -- TODO
-    b = blocks.air.name
+    
+    if y > h then -- слишком высоко - ставим воздух
+        b = blocks.air.name
+    elseif is_water(p) then -- 
+        b = blocks.water.name
+    elseif is_grass(p) then
+        if h == y then
+            if near_water(imagemap.img, z, x) then
+                b = blocks.sand.name
+            else
+                b = blocks.grass.name
+            end
+        else
+            b = blocks.dirt.name
+        end
+    else 
+        b = blocks.stone.name
+    end
     return b
 end
 
@@ -99,8 +115,20 @@ local function generate_blocks_for_area(area, emin, emax)
     print("generate blocks for min ", x0, y0, z0)
     print("generate blocks for max ", x1, y1, z1)
 
-    local vi = area:index(x0, y0, z0) -- voxelmanip index
-    map_data[vi] = minetest.get_content_id(blocks.air.name)
+    for x = x0, x1 do
+        for z = z0, z1 do
+            for y = y0, y1 do
+                local vi = area:index(x, y, z) -- voxelmanip index
+                if y <= 1 then 
+                    map_data[vi] = minetest.get_content_id(blocks.stone.name)
+                elseif is_inside_image(z, x) then
+                    local b = pixel_to_block(x, y, z)
+                    map_data[vi] = minetest.get_content_id(b)
+                end
+            end -- y
+        end
+    end
+
 end
 
 -----------------------------------------------------------
